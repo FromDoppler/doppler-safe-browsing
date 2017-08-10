@@ -38,7 +38,7 @@ using XAssert = Xunit.Assert;
 using NUnit.Framework;
 #endif
 using System.Collections;
-#if !(NET20 || NET35 || NET40 || PORTABLE40)
+#if !(NET35 || NET40 || PORTABLE40)
 using System.Threading.Tasks;
 #endif
 using System.Linq;
@@ -358,7 +358,7 @@ namespace MakingSense.SafeBrowsing.Tests
             }
         }
 
-#if !(NET20 || NET35 || NET40 || PORTABLE40)
+#if !(NET35 || NET40 || PORTABLE40)
         public static async Task<TException> ThrowsAsync<TException>(Func<Task> action, params string[] possibleMessages)
             where TException : Exception
         {

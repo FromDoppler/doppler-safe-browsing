@@ -6,7 +6,7 @@
     </ItemGroup>
   </Target>  
   <PropertyGroup>
-    <TargetFrameworks Condition="'$(TestFrameworks)'==''">net46;net451;net452;net40;net35;net20;netcoreapp1.1;netcoreapp1.0</TargetFrameworks>
+    <TargetFrameworks Condition="'$(TestFrameworks)'==''">net46;net451;net452;net40;net35;netcoreapp1.1;netcoreapp1.0</TargetFrameworks>
     <TargetFrameworks Condition="'$(TestFrameworks)'!=''">$(TestFrameworks)</TargetFrameworks>
     <VersionPrefix>1.0</VersionPrefix>
     <Authors>Doppler Relay Team</Authors>
@@ -123,16 +123,6 @@
   <PropertyGroup Condition="'$(TargetFramework)'=='net35'">
     <AssemblyTitle>SafeBrowsing.NET Tests .NET 3.5</AssemblyTitle>
     <DefineConstants>NET35;$(AdditionalConstants)</DefineConstants>
-  </PropertyGroup>
-  
-  <ItemGroup Condition="'$(TargetFramework)'=='net20'">
-    <PackageReference Include="NUnit" Version="3.6.0" />
-    <PackageReference Include="NUnit3TestAdapter" Version="3.7.0" />
-    <Reference Include="System.Web" />
-  </ItemGroup>
-  <PropertyGroup Condition="'$(TargetFramework)'=='net20'">
-    <AssemblyTitle>SafeBrowsing.NET Tests .NET 2.0</AssemblyTitle>
-    <DefineConstants>NET20;$(AdditionalConstants)</DefineConstants>
   </PropertyGroup>
   
   <ItemGroup Condition="'$(TargetFramework)'=='netcoreapp1.1'">

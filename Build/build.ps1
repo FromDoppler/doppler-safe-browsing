@@ -8,7 +8,7 @@
   $signAssemblies = $false
   $signKeyPath = "C:\projects\release-relay\safebrowsing.snk"
   $buildDocumentation = $false
-  $buildNuGet = $false
+  $buildNuGet = $true
   $treatWarningsAsErrors = $false
   $workingName = if ($workingName) {$workingName} else {"Working"}
   $netCliVersion = "1.0.4"

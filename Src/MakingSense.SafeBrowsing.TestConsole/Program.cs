@@ -36,7 +36,7 @@ namespace MakingSense.SafeBrowsing.TestConsole
     {
         public static void Main(string[] args)
         {
-            var attribute = (AssemblyFileVersionAttribute)typeof(DemoClass).GetTypeInfo().Assembly.GetCustomAttribute(typeof(AssemblyFileVersionAttribute));
+            var attribute = (AssemblyFileVersionAttribute)typeof(IUrlChecker).GetTypeInfo().Assembly.GetCustomAttribute(typeof(AssemblyFileVersionAttribute));
             Console.WriteLine("SafeBrowsing.NET Version: " + attribute.Version);
 
             new BenchmarkSwitcher(new[] { typeof(LowLevelBenchmarks) }).Run(new[] { "*" });

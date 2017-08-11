@@ -1,0 +1,14 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFrameworks>net46;netcoreapp1.1</TargetFrameworks>
+    <RootNamespace>MakingSense.SafeBrowsing.TestConsole</RootNamespace>
+    <AssemblyName>MakingSense.SafeBrowsing.TestConsole</AssemblyName>
+  </PropertyGroup>
+  <ItemGroup>
+    <None Remove="BenchmarkDotNet.Artifacts\**" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\MakingSense.SafeBrowsing.Tests\MakingSense.SafeBrowsing.Tests.csproj" />
+  </ItemGroup>
+</Project>

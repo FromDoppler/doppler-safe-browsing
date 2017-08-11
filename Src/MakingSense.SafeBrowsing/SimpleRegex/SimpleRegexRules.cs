@@ -48,7 +48,7 @@ namespace MakingSense.SafeBrowsing.SimpleRegex
         /// </summary>
         /// <param name="initialBlacklist"></param>
         /// <param name="etag"></param>
-        public void Update(IEnumerable<Regex> initialBlacklist, string etag = null)
+        public virtual void Update(IEnumerable<Regex> initialBlacklist, string etag = null)
         {
             Blacklist = new ReadOnlyCollection<Regex>(initialBlacklist.ToList());
             Etag = etag;

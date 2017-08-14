@@ -1,0 +1,2 @@
+^.*jpe082ver\.info.*$
+^.*ntfl-promo2017\.info.*$

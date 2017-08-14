@@ -10,7 +10,7 @@ namespace MakingSense.SafeBrowsing.SimpleRegex
     /// <summary>
     /// Allow to download rules definition from HTTP and update them
     /// </summary>
-    public class SimpleRegexRulesHttpUpdater
+    public class SimpleRegexRulesHttpUpdater : IUpdater
     {
         private readonly IHttpClient _httpClient;
 

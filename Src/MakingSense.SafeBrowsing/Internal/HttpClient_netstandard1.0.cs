@@ -45,14 +45,10 @@ namespace MakingSense.SafeBrowsing.Internal
 
         private Task<HttpWebResponse> GetAsync(string url)
         {
-            var tcs = new TaskCompletionSource<HttpWebResponse>();
             var request = WebRequest.CreateHttp(url);
-            request.BeginGetResponse(result =>
-            {
-                var response = (HttpWebResponse)request.EndGetResponse(result);
-                tcs.SetResult(response);
-            }, null);
-            return tcs.Task;
+            return Task.Factory
+                .FromAsync(request.BeginGetResponse, request.EndGetResponse, null)
+                .ContinueWith(t => (HttpWebResponse)t.Result);
         }
     }
 }

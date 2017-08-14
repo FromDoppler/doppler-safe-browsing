@@ -19,15 +19,57 @@ namespace MakingSense.SafeBrowsing.Internal
         /// <inheritdoc />
         public async Task<SimplifiedHttpResponse> GetStringAsync(string url, string ifNoneMatch = null)
         {
-            // TODO: Take into account ifNoneMatch value
-            var response = await GetAsync(url);
+            var request = WebRequest.CreateHttp(url);
+
+            if (ifNoneMatch != null)
+            {
+                request.Headers[HttpRequestHeader.IfNoneMatch] = ifNoneMatch;
+            }
+
+            var response = await SendAsync(request);
+
+            var newEtag = response.Headers["ETag"];
+
+            if (response.StatusCode == HttpStatusCode.NotModified)
+            {
+                return new SimplifiedHttpResponse()
+                {
+                    NotModified = true,
+                    Body = null,
+                    Etag = newEtag
+                };
+            }
+            else
+            {
+                return new SimplifiedHttpResponse()
+                {
+                    NotModified = false,
+                    Body = await GetStringAsync(response),
+                    Etag = newEtag
+                };
+            }
+        }
+
+        private async Task<HttpWebResponse> SendAsync(HttpWebRequest request)
+        {
+            try
+            {
+                var webResponse = await Task.Factory.FromAsync(request.BeginGetResponse, request.EndGetResponse, null);
+                return (HttpWebResponse)webResponse;
+            }
+            catch (WebException e) when (e.Response is HttpWebResponse httpResponse && httpResponse.StatusCode == HttpStatusCode.NotModified)
+            {
+                return httpResponse;
+            }
+        }
+
+        private async Task<string> GetStringAsync(HttpWebResponse response)
+        {
             var buffer = new byte[BUFFER_SIZE];
             var sb = new StringBuilder();
-
             using (var stream = response.GetResponseStream())
             {
-                bool finish = false;
-                while (!finish)
+                while (true)
                 {
                     var read = await stream.ReadAsync(buffer, 0, BUFFER_SIZE);
                     if (read > 0)
@@ -36,24 +78,10 @@ namespace MakingSense.SafeBrowsing.Internal
                     }
                     else
                     {
-                        finish = true;
+                        return sb.ToString();
                     }
                 }
             }
-
-            return new SimplifiedHttpResponse()
-            {
-                Body = sb.ToString()
-                // TODO: Update NotModified and Etag values
-            };
-        }
-
-        private Task<HttpWebResponse> GetAsync(string url)
-        {
-            var request = WebRequest.CreateHttp(url);
-            return Task.Factory
-                .FromAsync(request.BeginGetResponse, request.EndGetResponse, null)
-                .ContinueWith(t => (HttpWebResponse)t.Result);
         }
     }
 }

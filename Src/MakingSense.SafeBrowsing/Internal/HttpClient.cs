@@ -19,12 +19,34 @@ namespace MakingSense.SafeBrowsing.Internal
         /// <inheritdoc />
         public async Task<SimplifiedHttpResponse> GetStringAsync(string url, string ifNoneMatch = null)
         {
-            return new SimplifiedHttpResponse()
+            var request = new HttpRequestMessage(HttpMethod.Get, url);
+            if (ifNoneMatch != null)
             {
-                // TODO: Take into account ifNoneMatch value
-                Body = await _httpClient.GetStringAsync(url)
-                // TODO: Update NotModified and Etag values
-            };
+                request.Headers.TryAddWithoutValidation("If-None-Match", ifNoneMatch);
+            }
+
+            var response = await _httpClient.SendAsync(request);
+
+            var newEtag = response.Headers.ETag.Tag;
+
+            if (response.StatusCode == System.Net.HttpStatusCode.NotModified)
+            {
+                return new SimplifiedHttpResponse()
+                {
+                    NotModified = true,
+                    Body = null,
+                    Etag = newEtag
+                };
+            }
+            else
+            {
+                return new SimplifiedHttpResponse()
+                {
+                    NotModified = false,
+                    Body = await _httpClient.GetStringAsync(url),
+                    Etag = newEtag
+                };
+            }
         }
     }
 }

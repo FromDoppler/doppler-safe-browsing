@@ -179,5 +179,30 @@ namespace MakingSense.SafeBrowsing.SimpleRegex
             Assert.AreEqual(originalRegex, rules.Blacklist.First());
             Assert.AreSame(originalList, rules.Blacklist);
         }
+
+        [Test]
+        public void SimpleRegexRulesHttpUpdater_should_not_update_list_when_response_is_not_modified_real_request()
+        {
+            // Arrange
+            var realUrl = "https://raw.githubusercontent.com/MakingSense/safe-browsing/resources/links-blacklist.txt";
+            var rules = new SimpleRegexRulesDouble();
+            var sut = new SimpleRegexRulesHttpUpdater(realUrl, rules);
+            Assert.AreEqual(0, rules.Count_Update);
+            sut.UpdateAsync().Wait();
+            Assert.AreEqual(1, rules.Count_Update);
+            Assert.IsTrue(rules.Blacklist.Any());
+
+            // Act
+            sut.UpdateAsync().Wait();
+
+            // Assert
+            Assert.AreEqual(1, rules.Count_Update);
+
+            // Act
+            sut.UpdateAsync().Wait();
+
+            // Assert
+            Assert.AreEqual(1, rules.Count_Update);
+        }
     }
 }

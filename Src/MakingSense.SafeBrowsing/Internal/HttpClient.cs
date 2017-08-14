@@ -17,9 +17,14 @@ namespace MakingSense.SafeBrowsing.Internal
         private static System.Net.Http.HttpClient _httpClient = new System.Net.Http.HttpClient();
 
         /// <inheritdoc />
-        public Task<string> GetStringAsync(string url)
+        public async Task<SimplifiedHttpResponse> GetStringAsync(string url, string ifNoneMatch = null)
         {
-            return _httpClient.GetStringAsync(url);
+            return new SimplifiedHttpResponse()
+            {
+                // TODO: Take into account ifNoneMatch value
+                Body = await _httpClient.GetStringAsync(url)
+                // TODO: Update NotModified and Etag values
+            };
         }
     }
 }

@@ -16,6 +16,11 @@ namespace MakingSense.SafeBrowsing.SimpleRegex
         private static readonly ReadOnlyCollection<Regex> EmptyCollection = new ReadOnlyCollection<Regex>(new List<Regex>());
 
         /// <summary>
+        /// Etag of last updated list
+        /// </summary>
+        public string Etag { get; private set; }
+
+        /// <summary>
         /// Collection of regular expressions that represent dangerous URLs
         /// </summary>
         public ReadOnlyCollection<Regex> Blacklist { get; private set; }
@@ -26,6 +31,7 @@ namespace MakingSense.SafeBrowsing.SimpleRegex
         public SimpleRegexRules()
         {
             Blacklist = EmptyCollection;
+            Etag = null;
         }
 
         /// <summary>
@@ -41,9 +47,11 @@ namespace MakingSense.SafeBrowsing.SimpleRegex
         /// Update current blacklist with a new one
         /// </summary>
         /// <param name="initialBlacklist"></param>
-        public void Update(IEnumerable<Regex> initialBlacklist)
+        /// <param name="etag"></param>
+        public void Update(IEnumerable<Regex> initialBlacklist, string etag = null)
         {
             Blacklist = new ReadOnlyCollection<Regex>(initialBlacklist.ToList());
+            Etag = etag;
         }
     }
 }

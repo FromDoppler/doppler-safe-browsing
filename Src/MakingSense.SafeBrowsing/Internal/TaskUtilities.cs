@@ -30,6 +30,10 @@ namespace MakingSense.SafeBrowsing.Internal
 #endif
 
         private static Task _completedTask = null;
+
+        /// <summary>
+        /// Returns a cached already completed task
+        /// </summary>
         public static Task CompletedTask => _completedTask ?? (_completedTask = FromResult(true));
     }
 }

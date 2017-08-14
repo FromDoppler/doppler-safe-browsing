@@ -17,8 +17,9 @@ namespace MakingSense.SafeBrowsing.Internal
         private const int BUFFER_SIZE = 1024;
 
         /// <inheritdoc />
-        public async Task<string> GetStringAsync(string url)
+        public async Task<SimplifiedHttpResponse> GetStringAsync(string url, string ifNoneMatch = null)
         {
+            // TODO: Take into account ifNoneMatch value
             var response = await GetAsync(url);
             var buffer = new byte[BUFFER_SIZE];
             var sb = new StringBuilder();
@@ -40,7 +41,11 @@ namespace MakingSense.SafeBrowsing.Internal
                 }
             }
 
-            return sb.ToString();
+            return new SimplifiedHttpResponse()
+            {
+                Body = sb.ToString()
+                // TODO: Update NotModified and Etag values
+            };
         }
 
         private Task<HttpWebResponse> GetAsync(string url)

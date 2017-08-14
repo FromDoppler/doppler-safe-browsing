@@ -10,9 +10,13 @@ namespace MakingSense.SafeBrowsing.Tests
     {
         public string Response_GetString { get; set; }
 
-        public Task<string> GetStringAsync(string url)
+        public Task<SimplifiedHttpResponse> GetStringAsync(string url, string ifNoneMatch = null)
         {
-            return Internal.TaskUtilities.FromResult(Response_GetString);
+            return Internal.TaskUtilities.FromResult(new SimplifiedHttpResponse()
+            {
+                Body = Response_GetString
+                // TODO: support setting of NotModified and Etag values
+            });
         }
     }
 }

@@ -15,7 +15,8 @@ namespace MakingSense.SafeBrowsing
         /// Get response body as string after GET specified URL
         /// </summary>
         /// <param name="url"></param>
+        /// <param name="ifNoneMatch"></param>
         /// <returns></returns>
-        Task<string> GetStringAsync(string url);
+        Task<SimplifiedHttpResponse> GetStringAsync(string url, string ifNoneMatch = null);
     }
 }

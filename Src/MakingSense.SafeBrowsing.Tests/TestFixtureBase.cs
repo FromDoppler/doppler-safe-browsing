@@ -166,6 +166,12 @@ namespace MakingSense.SafeBrowsing.Tests
         {
             XAssert.Same(expected, actual);
         }
+
+        public static void InRange<T>(T actual, T low, T min)
+            where T : IComparable
+        {
+            XAssert.InRange(actual, low, min);
+        }
     }
 
     public class CollectionAssert
@@ -242,6 +248,15 @@ namespace MakingSense.SafeBrowsing.Tests
                 }
             }
             return bytes;
+        }
+
+        protected static void Delay(TimeSpan testTime)
+        {
+#if (NET35 || NET40)
+            Thread.Sleep(testTime);
+#else
+            Task.Delay(testTime).Wait();
+#endif
         }
 
 #if DNXCORE50

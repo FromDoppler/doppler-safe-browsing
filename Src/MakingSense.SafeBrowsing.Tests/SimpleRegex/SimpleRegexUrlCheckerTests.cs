@@ -29,6 +29,7 @@ using System.Linq;
 using System.Text;
 using MakingSense.SafeBrowsing.Tests;
 using System.Threading.Tasks;
+using System.Text.RegularExpressions;
 #if DNXCORE50
 using Xunit;
 using Test = Xunit.FactAttribute;
@@ -138,6 +139,25 @@ namespace MakingSense.SafeBrowsing.SimpleRegex
             Assert.AreEqual(url, result.Url);
             Assert.IsTrue(result.IsSafe);
             Assert.AreEqual(ThreatType.NoThreat, result.ThreatType);
+        }
+
+        [Test]
+        public void SimpleRegexUrlChecker_should_respond_to_rules_updating()
+        {
+            // Arrange
+            var rules = new SimpleRegexRules();
+            var sut = new SimpleRegexUrlChecker(rules);
+            var url = "http://www.jpe082ver.info/test";
+            Assert.IsTrue(sut.Check(url).IsSafe);
+
+            // Act
+            rules.Update(new[] { new Regex(@"^.*jpe082ver\.info.*$") });
+            var result = sut.Check(url);
+
+            // Assert
+            Assert.AreEqual(url, result.Url);
+            Assert.AreEqual(ThreatType.Unknow, result.ThreatType);
+            Assert.IsFalse(result.IsSafe);
         }
     }
 }

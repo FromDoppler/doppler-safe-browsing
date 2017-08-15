@@ -13,7 +13,16 @@ namespace MakingSense.SafeBrowsing.SimpleRegex
     /// </summary>
     public class SimpleRegexUrlChecker : IUrlChecker
     {
-        private readonly List<Regex> _blacklist = new List<Regex>();
+        private readonly SimpleRegexRules _rules;
+
+        /// <summary>
+        /// Create a new instance based on specified rules
+        /// </summary>
+        /// <param name="rules"></param>
+        public SimpleRegexUrlChecker(SimpleRegexRules rules)
+        {
+            _rules = rules;
+        }
 
         /// <summary>
         /// Create a new instance based on a list of patterns
@@ -29,15 +38,15 @@ namespace MakingSense.SafeBrowsing.SimpleRegex
         /// </summary>
         /// <param name="blacklist"></param>
         public SimpleRegexUrlChecker(IEnumerable<Regex> blacklist)
+            : this(new SimpleRegexRules(blacklist))
         {
-            _blacklist.AddRange(blacklist);
         }
 
         /// <inheritdoc />
         public SafeBrowsingStatus Check(string url) =>
             new SafeBrowsingStatus(
                 url,
-                _blacklist.Any(r => r.IsMatch(url)) ? ThreatType.Unknow : ThreatType.NoThreat);
+                _rules.Blacklist.Any(r => r.IsMatch(url)) ? ThreatType.Unknow : ThreatType.NoThreat);
 
         /// <inheritdoc />
         public Task<SafeBrowsingStatus> CheckAsync(string url) =>

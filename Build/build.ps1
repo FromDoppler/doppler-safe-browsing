@@ -1,7 +1,7 @@
 ﻿properties { 
   $zipFileName = "SafeBrowsingAlpha.zip"
   $majorVersion = "0.2"
-  $majorWithReleaseVersion = "0.2.0-alpha1"
+  $majorWithReleaseVersion = "0.2.0-alpha2"
   $nugetPrerelease = $null
   $version = GetVersion $majorWithReleaseVersion
   $packageId = "MakingSense.SafeBrowsing"

@@ -63,14 +63,11 @@
     <PackageReference Include="System.Xml.XmlDocument" Version="4.3.0" />
   </ItemGroup>
   <ItemGroup Condition="'$(TargetFramework)' == 'net45'">
-    <PackageReference Include="Microsoft.Net.Http" />
+    <PackageReference Include="System.Net.Http" Version="4.3.2" />
   </ItemGroup>
   <ItemGroup Condition="'$(TargetFramework)' == 'net40'">
     <PackageReference Include="AsyncBridge" Version="0.1.1" />
-    <PackageReference Include="Microsoft.Net.Http" />
-  </ItemGroup>
-  <ItemGroup Condition="'$(TargetFramework)' == 'net45'">
-    <PackageReference Include="Microsoft.Net.Http" />
+    <PackageReference Include="Microsoft.Net.Http" Version="2.2.29" />
   </ItemGroup>
   <ItemGroup Condition="'$(TargetFramework)' == 'net35'">
     <PackageReference Include="Rackspace.HttpClient35" Version="1.0.0-beta003" />

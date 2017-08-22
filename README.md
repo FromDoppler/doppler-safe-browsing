@@ -1,8 +1,8 @@
 # safe-browsing
 
-A .NET implementation of Google Safe Browsing Update API (or another alternative API)
+A .NET implementation of [Google Safe Browsing Update API](https://developers.google.com/safe-browsing/v4/update-api) (or another alternative API).
 
-Nuget package available at: https://preview.nuget.org/packages/MakingSense.SafeBrowsing
+Nuget package available at [MakingSense.SafeBrowsing](https://preview.nuget.org/packages/MakingSense.SafeBrowsing).
 
 ### Simple regex URL checker
 

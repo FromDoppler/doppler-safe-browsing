@@ -93,10 +93,7 @@ namespace MakingSense.SafeBrowsing.GoogleSafeBrowsing
             {
                 if(listUpdate.ResponseType == FULL_UPDATE)
                 {
-                    _database.SuspiciousLists[listUpdate.ThreatType] = new SafeBrowsingList
-                    {
-                        State = response.ListUpdateResponses.First().NewClientState
-                    };
+                    _database.SuspiciousLists[listUpdate.ThreatType].Hashes = new List<byte[]>();
 
                     foreach (var add in listUpdate.Additions)
                     {
@@ -104,14 +101,29 @@ namespace MakingSense.SafeBrowsing.GoogleSafeBrowsing
                         var hashValues = Convert.FromBase64String(rawHashes.RawHashesValue);
                         _database.SuspiciousLists[listUpdate.ThreatType].Hashes.AddRange(SplitByteList(hashValues, rawHashes.PrefixSize.Value));
                     }
-
-                    //_database.UnsafeLists[listUpdate.ThreatType].Hashes.Sort();
                 }
                 else
                 {
                     //TODO: implement partial updates
                 }
+
+                _database.SuspiciousLists[listUpdate.ThreatType].State = listUpdate.NewClientState;
+                _database.SuspiciousLists[listUpdate.ThreatType].Hashes = OrderList(_database.SuspiciousLists[listUpdate.ThreatType].Hashes);
             }
+        }
+
+        private List<byte[]> OrderList(List<byte[]> list)
+        {
+            var ordered = list.OrderBy(x => x, new ByteArrayComparer());
+
+            list = new List<byte[]>();
+
+            foreach (var item in ordered)
+            {
+                list.Add(item);
+            }
+
+            return list;
         }
 
         /// <summary>
@@ -138,6 +150,22 @@ namespace MakingSense.SafeBrowsing.GoogleSafeBrowsing
 
             return list;
         }
+
+        public class ByteArrayComparer : IComparer<byte[]>
+        {
+            public int Compare(byte[] x, byte[] y)
+            {
+                int result;
+                var min = Math.Min(x.Length, y.Length);
+                for (int index = 0; index < min; index++)
+                {
+                    result = x[index].CompareTo(y[index]);
+                    if (result != 0) return result;
+                }
+                return x.Length.CompareTo(y.Length);
+            }
+        }
+
     }
 }
 #endif

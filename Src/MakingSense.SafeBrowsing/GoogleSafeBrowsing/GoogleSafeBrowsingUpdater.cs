@@ -10,6 +10,9 @@ using System.Threading.Tasks;
 
 namespace MakingSense.SafeBrowsing.GoogleSafeBrowsing
 {
+    /// <summary>
+    /// Allow to download Google Safe Browsing lists from HTTP and update them
+    /// </summary>
     public class GoogleSafeBrowsingUpdater : IUpdater
     {
         private readonly GoogleSafeBrowsingConfiguration _configuration;
@@ -21,7 +24,14 @@ namespace MakingSense.SafeBrowsing.GoogleSafeBrowsing
         private const string RAW = "RAW";
         private const string FULL_UPDATE = "FULL_UPDATE";
 
-        public GoogleSafeBrowsingUpdater(string apiKey, string clientId, string clientVersion, string region)
+        /// <summary>
+        /// Creates new instance and initializes configuration parameters
+        /// </summary>
+        /// <param name="apiKey">Google API KEY</param>
+        /// <param name="clientId">Unique client ID</param>
+        /// <param name="clientVersion">Client version</param>
+        /// <param name="region">Geographic location in ISO 3166-1 alpha-2 format</param>
+        public GoogleSafeBrowsingUpdater(string apiKey, string clientId, string clientVersion, string region = null)
         {
             _configuration = new GoogleSafeBrowsingConfiguration
             {
@@ -39,6 +49,10 @@ namespace MakingSense.SafeBrowsing.GoogleSafeBrowsing
             _database = new GoogleSafeBrowsingDatabase();
         }
 
+        /// <summary>
+        /// Updates Google Safe Browsing lists based on the remote resource
+        /// </summary>
+        /// <returns></returns>
         public async Task UpdateAsync()
         {
             if (!_database.AllowRequest)
@@ -53,7 +67,7 @@ namespace MakingSense.SafeBrowsing.GoogleSafeBrowsing
                     ClientId = _configuration.ClientId,
                     ClientVersion = _configuration.ClientVersion
                 },
-                ListUpdateRequests = _database.UnsafeLists.Select(list => new ListUpdateRequest
+                ListUpdateRequests = _database.SuspiciousLists.Select(list => new ListUpdateRequest
                 {
                     PlatformType = ANY_PLATFORM,
                     ThreatType = list.Key,
@@ -79,7 +93,7 @@ namespace MakingSense.SafeBrowsing.GoogleSafeBrowsing
             {
                 if(listUpdate.ResponseType == FULL_UPDATE)
                 {
-                    _database.UnsafeLists[listUpdate.ThreatType] = new UnsafeList
+                    _database.SuspiciousLists[listUpdate.ThreatType] = new SafeBrowsingList
                     {
                         State = response.ListUpdateResponses.First().NewClientState
                     };
@@ -88,7 +102,7 @@ namespace MakingSense.SafeBrowsing.GoogleSafeBrowsing
                     {
                         var rawHashes = add.RawHashes;
                         var hashValues = Convert.FromBase64String(rawHashes.RawHashesValue);
-                        _database.UnsafeLists[listUpdate.ThreatType].Hashes.AddRange(SplitByteList(hashValues, rawHashes.PrefixSize.Value));
+                        _database.SuspiciousLists[listUpdate.ThreatType].Hashes.AddRange(SplitByteList(hashValues, rawHashes.PrefixSize.Value));
                     }
 
                     //_database.UnsafeLists[listUpdate.ThreatType].Hashes.Sort();
@@ -100,6 +114,12 @@ namespace MakingSense.SafeBrowsing.GoogleSafeBrowsing
             }
         }
 
+        /// <summary>
+        /// Split an array of bytes in smaller arrays based on input size.
+        /// </summary>
+        /// <param name="bytes">Original long array of bytes</param>
+        /// <param name="size">New small arrays lenth</param>
+        /// <returns>List of splitted arrays of bytes</returns>
         private List<byte[]> SplitByteList(byte[] bytes, int size)
         {
             var list = new List<byte[]>();

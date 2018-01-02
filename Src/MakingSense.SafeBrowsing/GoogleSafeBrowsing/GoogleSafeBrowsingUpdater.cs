@@ -27,19 +27,10 @@ namespace MakingSense.SafeBrowsing.GoogleSafeBrowsing
         /// <summary>
         /// Creates new instance and initializes configuration parameters
         /// </summary>
-        /// <param name="apiKey">Google API KEY</param>
-        /// <param name="clientId">Unique client ID</param>
-        /// <param name="clientVersion">Client version</param>
-        /// <param name="region">Geographic location in ISO 3166-1 alpha-2 format</param>
-        public GoogleSafeBrowsingUpdater(string apiKey, string clientId, string clientVersion, string region = null)
+        /// <param name="configuration">Google Safe Browsing configuration</param>
+        public GoogleSafeBrowsingUpdater(GoogleSafeBrowsingConfiguration configuration)
         {
-            _configuration = new GoogleSafeBrowsingConfiguration
-            {
-                ApiKey = apiKey,
-                ClientId = clientId,
-                ClientVersion = clientVersion,
-                Region = region
-            };
+            _configuration = configuration;
 
             _safebrowsingService = new SafebrowsingService(new BaseClientService.Initializer
             {
@@ -76,10 +67,7 @@ namespace MakingSense.SafeBrowsing.GoogleSafeBrowsing
                     Constraints = new Constraints
                     {
                         Region = _configuration.Region,
-                        SupportedCompressions = new List<string>
-                    {
-                        RAW
-                    }
+                        SupportedCompressions = new List<string> { RAW }
                     }
                 }).ToList()
             };
@@ -91,39 +79,35 @@ namespace MakingSense.SafeBrowsing.GoogleSafeBrowsing
 
             foreach (var listUpdate in response.ListUpdateResponses)
             {
-                if(listUpdate.ResponseType == FULL_UPDATE)
-                {
-                    _database.SuspiciousLists[listUpdate.ThreatType].Hashes = new List<byte[]>();
+                IEnumerable<byte[]> hashes = _database.SuspiciousLists[listUpdate.ThreatType].Hashes;
 
-                    foreach (var add in listUpdate.Additions)
-                    {
-                        var rawHashes = add.RawHashes;
-                        var hashValues = Convert.FromBase64String(rawHashes.RawHashesValue);
-                        _database.SuspiciousLists[listUpdate.ThreatType].Hashes.AddRange(SplitByteList(hashValues, rawHashes.PrefixSize.Value));
-                    }
+                if (listUpdate.ResponseType == FULL_UPDATE)
+                {
+                    hashes = listUpdate.Additions.Select(x => x.RawHashes)
+                        .SelectMany(rh => SplitByteList(Convert.FromBase64String(rh.RawHashesValue), rh.PrefixSize.Value));
                 }
                 else
                 {
-                    //TODO: implement partial updates
+                    throw new NotImplementedException("Partial updates are not implemented yet");
                 }
 
                 _database.SuspiciousLists[listUpdate.ThreatType].State = listUpdate.NewClientState;
-                _database.SuspiciousLists[listUpdate.ThreatType].Hashes = OrderList(_database.SuspiciousLists[listUpdate.ThreatType].Hashes);
+                _database.SuspiciousLists[listUpdate.ThreatType].Hashes = OrderList(hashes);
             }
         }
 
-        private List<byte[]> OrderList(List<byte[]> list)
+
+        private List<byte[]> OrderList(IEnumerable<byte[]> list)
         {
-            var ordered = list.OrderBy(x => x, new ByteArrayComparer());
+            var orderedList = new List<byte[]>();
 
-            list = new List<byte[]>();
-
-            foreach (var item in ordered)
+            foreach (var item in list.OrderBy(x => x, new ByteArrayComparer()))
             {
-                list.Add(item);
+                // Creating the list manually as ToList get stuck
+                orderedList.Add(item);
             }
 
-            return list;
+            return orderedList;
         }
 
         /// <summary>
@@ -135,21 +119,17 @@ namespace MakingSense.SafeBrowsing.GoogleSafeBrowsing
         private List<byte[]> SplitByteList(byte[] bytes, int size)
         {
             var list = new List<byte[]>();
-            var aux = new List<byte>();
 
-            for (int i = 0; i < bytes.Length; i++)
+            for (int i = 0; i < bytes.Length; i = i + size)
             {
-                aux.Add(bytes[i]);
-
-                if (aux.Count == size)
-                {
-                    list.Add(aux.ToArray());
-                    aux = new List<byte>();
-                }
+                var aux = new byte[size];
+                Array.Copy(bytes, i, aux, 0, size);
+                list.Add(aux);
             }
 
             return list;
         }
+
 
         public class ByteArrayComparer : IComparer<byte[]>
         {

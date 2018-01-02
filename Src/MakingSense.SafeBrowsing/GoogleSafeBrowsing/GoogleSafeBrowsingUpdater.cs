@@ -79,20 +79,40 @@ namespace MakingSense.SafeBrowsing.GoogleSafeBrowsing
 
             foreach (var listUpdate in response.ListUpdateResponses)
             {
+                if(_database.SuspiciousLists[listUpdate.ThreatType].State == listUpdate.NewClientState)
+                {
+                    continue;
+                }
+
                 IEnumerable<byte[]> hashes = _database.SuspiciousLists[listUpdate.ThreatType].Hashes;
+
+                var newHashes = listUpdate.Additions != null ? 
+                                listUpdate.Additions.Select(x => x.RawHashes)
+                                    .SelectMany(rh => SplitByteList(Convert.FromBase64String(rh.RawHashesValue), rh.PrefixSize.Value)) : 
+                                new List<byte[]>();
 
                 if (listUpdate.ResponseType == FULL_UPDATE)
                 {
-                    hashes = listUpdate.Additions.Select(x => x.RawHashes)
-                        .SelectMany(rh => SplitByteList(Convert.FromBase64String(rh.RawHashesValue), rh.PrefixSize.Value));
+                    hashes = newHashes;
                 }
                 else
                 {
-                    throw new NotImplementedException("Partial updates are not implemented yet");
+                    if(listUpdate.Removals != null)
+                    {
+                        var indices = listUpdate.Removals.SelectMany(x => x.RawIndices.Indices);
+
+                        hashes = hashes.Where((x, index) => !indices.Contains(index));
+                    }
+
+                    hashes = hashes.Concat(newHashes);
                 }
 
                 _database.SuspiciousLists[listUpdate.ThreatType].State = listUpdate.NewClientState;
                 _database.SuspiciousLists[listUpdate.ThreatType].Hashes = OrderList(hashes);
+
+                //TODO: verify checksum - if not valid, state should be empty to try full update the next time
+                // if checksum not match
+                //      _database.SuspiciousLists[listUpdate.ThreatType].State = null;
             }
         }
 

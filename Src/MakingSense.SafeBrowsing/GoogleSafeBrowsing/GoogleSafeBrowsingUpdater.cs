@@ -72,7 +72,17 @@ namespace MakingSense.SafeBrowsing.GoogleSafeBrowsing
                 }).ToList()
             };
 
-            var response = await _safebrowsingService.ThreatListUpdates.Fetch(request).ExecuteAsync();
+            FetchThreatListUpdatesResponse response = null;
+
+            try
+            {
+                response = await _safebrowsingService.ThreatListUpdates.Fetch(request).ExecuteAsync();
+            }
+            catch (Google.GoogleApiException ex)
+            {
+                _database.EnterBackOffMode();
+                throw;
+            }
 
             _database.MinimumWaitDuration = TimeSpan.FromSeconds(double.Parse((response.MinimumWaitDuration as string).TrimEnd('s')));
             _database.Updated = DateTimeOffset.Now;

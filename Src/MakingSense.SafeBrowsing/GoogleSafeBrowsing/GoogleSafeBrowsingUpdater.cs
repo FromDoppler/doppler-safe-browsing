@@ -1,7 +1,5 @@
 ﻿#if !(NET35 || NET40 || NETSTANDARD1_0)
-using Google.Apis.Safebrowsing.v4;
 using Google.Apis.Safebrowsing.v4.Data;
-using Google.Apis.Services;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -17,7 +15,7 @@ namespace MakingSense.SafeBrowsing.GoogleSafeBrowsing
     {
         private readonly GoogleSafeBrowsingConfiguration _configuration;
         private readonly GoogleSafeBrowsingDatabase _database;
-        private readonly SafebrowsingService _safebrowsingService;
+        private readonly ISafeBrowsingService _safeBrowsingService;
 
         private const string ANY_PLATFORM = "ANY_PLATFORM";
         private const string URL = "URL";
@@ -28,14 +26,12 @@ namespace MakingSense.SafeBrowsing.GoogleSafeBrowsing
         /// Creates new instance and initializes configuration parameters
         /// </summary>
         /// <param name="configuration">Google Safe Browsing configuration</param>
-        public GoogleSafeBrowsingUpdater(GoogleSafeBrowsingConfiguration configuration)
+        /// <param name="safeBrowsingService">Optional ISafeBrowsingService implementation</param>
+        public GoogleSafeBrowsingUpdater(GoogleSafeBrowsingConfiguration configuration, ISafeBrowsingService safeBrowsingService = null)
         {
             _configuration = configuration;
 
-            _safebrowsingService = new SafebrowsingService(new BaseClientService.Initializer
-            {
-                ApiKey = _configuration.ApiKey,
-            });
+            _safeBrowsingService = safeBrowsingService ?? new SafeBrowsingService(_configuration.ApiKey);
 
             _database = new GoogleSafeBrowsingDatabase();
         }
@@ -76,7 +72,7 @@ namespace MakingSense.SafeBrowsing.GoogleSafeBrowsing
 
             try
             {
-                response = await _safebrowsingService.ThreatListUpdates.Fetch(request).ExecuteAsync();
+                response = await _safeBrowsingService.FetchThreatListUpdatesAsync(request);
             }
             catch (Google.GoogleApiException ex)
             {

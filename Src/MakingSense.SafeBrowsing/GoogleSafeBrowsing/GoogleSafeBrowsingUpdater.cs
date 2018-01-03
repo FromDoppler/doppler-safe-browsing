@@ -84,6 +84,11 @@ namespace MakingSense.SafeBrowsing.GoogleSafeBrowsing
                 throw;
             }
 
+            if (_database.BackOffMode)
+            {
+                _database.ExitBackOffMode();
+            }
+
             _database.MinimumWaitDuration = TimeSpan.FromSeconds(double.Parse((response.MinimumWaitDuration as string).TrimEnd('s')));
             _database.Updated = DateTimeOffset.Now;
 

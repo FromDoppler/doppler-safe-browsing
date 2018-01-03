@@ -38,18 +38,18 @@ namespace MakingSense.SafeBrowsing.GoogleSafeBrowsing
         /// Once in back-off mode, clients must wait the computed time duration before 
         /// they can issue another request to the server.</para>
         /// </summary>
-        public bool BackOffMode { get; set; } = false;
+        public bool BackOffMode { get; private set; } = false;
 
         /// <summary>
         /// Number of consecutive, unsuccessful requests that the client experiences 
         /// (starting with N=1 after the first unsuccessful request)
         /// </summary>
-        public int BackOffRetryNumber { get; set; }
+        public int BackOffRetryNumber { get; private set; }
 
         /// <summary>
         /// Random number between 0 and 1 that needs to be picked after every unsuccessful update.
         /// </summary>
-        public double BackOffSeed { get; set; }
+        public double BackOffSeed { get; private set; }
 
         /// <summary>
         /// Back-off computed time duration before client can issue another request to the server. 
@@ -109,6 +109,14 @@ namespace MakingSense.SafeBrowsing.GoogleSafeBrowsing
             {
                 BackOffRetryNumber++;
             }
+        }
+
+        /// <summary>
+        /// Exit back-off mode after receive a successful HTTP response.
+        /// </summary>
+        public void ExitBackOffMode()
+        {
+            BackOffMode = false;
         }
     }
 

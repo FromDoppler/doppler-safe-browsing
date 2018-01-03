@@ -61,7 +61,7 @@ namespace MakingSense.SafeBrowsing.GoogleSafeBrowsing
                 ListUpdateRequests = _database.SuspiciousLists.Select(list => new ListUpdateRequest
                 {
                     PlatformType = ANY_PLATFORM,
-                    ThreatType = list.Key,
+                    ThreatType = list.Key.ToString(),
                     ThreatEntryType = URL,
                     State = list.Value.State,
                     Constraints = new Constraints
@@ -89,60 +89,23 @@ namespace MakingSense.SafeBrowsing.GoogleSafeBrowsing
                 _database.ExitBackOffMode();
             }
 
-            _database.MinimumWaitDuration = TimeSpan.FromSeconds(double.Parse((response.MinimumWaitDuration as string).TrimEnd('s')));
-            _database.Updated = DateTimeOffset.Now;
+            var minWaitDuration = TimeSpan.FromSeconds(double.Parse((response.MinimumWaitDuration as string).TrimEnd('s')));
+            var listUpdates = response.ListUpdateResponses.Select(x=> MapListUpdate(x));
 
-            foreach (var listUpdate in response.ListUpdateResponses)
-            {
-                if(_database.SuspiciousLists[listUpdate.ThreatType].State == listUpdate.NewClientState)
-                {
-                    continue;
-                }
-
-                IEnumerable<byte[]> hashes = _database.SuspiciousLists[listUpdate.ThreatType].Hashes;
-
-                var newHashes = listUpdate.Additions != null ? 
-                                listUpdate.Additions.Select(x => x.RawHashes)
-                                    .SelectMany(rh => SplitByteList(Convert.FromBase64String(rh.RawHashesValue), rh.PrefixSize.Value)) : 
-                                new List<byte[]>();
-
-                if (listUpdate.ResponseType == FULL_UPDATE)
-                {
-                    hashes = newHashes;
-                }
-                else
-                {
-                    if(listUpdate.Removals != null)
-                    {
-                        var indices = listUpdate.Removals.SelectMany(x => x.RawIndices.Indices);
-
-                        hashes = hashes.Where((x, index) => !indices.Contains(index));
-                    }
-
-                    hashes = hashes.Concat(newHashes);
-                }
-
-                _database.SuspiciousLists[listUpdate.ThreatType].State = listUpdate.NewClientState;
-                _database.SuspiciousLists[listUpdate.ThreatType].Hashes = OrderList(hashes);
-
-                //TODO: verify checksum - if not valid, state should be empty to try full update the next time
-                // if checksum not match
-                //      _database.SuspiciousLists[listUpdate.ThreatType].State = null;
-            }
+            _database.Update(DateTimeOffset.Now, minWaitDuration, listUpdates);
         }
 
-
-        private List<byte[]> OrderList(IEnumerable<byte[]> list)
+        private ListUpdate MapListUpdate(ListUpdateResponse response)
         {
-            var orderedList = new List<byte[]>();
-
-            foreach (var item in list.OrderBy(x => x, new ByteArrayComparer()))
+            return new ListUpdate()
             {
-                // Creating the list manually as ToList get stuck
-                orderedList.Add(item);
-            }
-
-            return orderedList;
+                ThreatType = (ThreatType) Enum.Parse(typeof(ThreatType),response.ThreatType),
+                State = response.NewClientState,
+                FullUpdate = response.ResponseType == FULL_UPDATE,
+                AddingHashes = response.Additions?.Select(a => a.RawHashes)
+                                    .SelectMany(rh => SplitByteList(Convert.FromBase64String(rh.RawHashesValue), rh.PrefixSize.Value)),
+                RemovalsIndices = response.Removals?.SelectMany(x => x.RawIndices.Indices).Where(x => x.HasValue).Select(x => x.Value)
+            };
         }
 
         /// <summary>
@@ -164,23 +127,6 @@ namespace MakingSense.SafeBrowsing.GoogleSafeBrowsing
 
             return list;
         }
-
-
-        public class ByteArrayComparer : IComparer<byte[]>
-        {
-            public int Compare(byte[] x, byte[] y)
-            {
-                int result;
-                var min = Math.Min(x.Length, y.Length);
-                for (int index = 0; index < min; index++)
-                {
-                    result = x[index].CompareTo(y[index]);
-                    if (result != 0) return result;
-                }
-                return x.Length.CompareTo(y.Length);
-            }
-        }
-
     }
 }
 #endif

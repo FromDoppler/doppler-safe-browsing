@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -19,17 +20,21 @@ namespace MakingSense.SafeBrowsing.GoogleSafeBrowsing
         /// The minimum duration the client must wait before issuing any update request. 
         /// If this field is not set clients may update as soon as they want.
         /// </summary>
-        public TimeSpan? MinimumWaitDuration { get; set; } = null;
+        public TimeSpan? MinimumWaitDuration { get; private set; } = null;
 
         /// <summary>
         /// Last time Google Safe Browsing lists were updated
         /// </summary>
-        public DateTimeOffset? Updated { get; set; } = null;
+        public DateTimeOffset? Updated { get; private set; } = null;
 
         /// <summary>
         /// Google Safe Browsing lists
         /// </summary>
-        public Dictionary<string, SafeBrowsingList> SuspiciousLists { get; set; }
+#if !(NET35 || NET40)
+        public ReadOnlyDictionary<ThreatType, SafeBrowsingList> SuspiciousLists { get; private set; }
+#else
+        public Dictionary<ThreatType, SafeBrowsingList> SuspiciousLists { get; private set; }
+#endif
 
         /// <summary>
         /// Indicate if client is in back-off mode.
@@ -84,11 +89,18 @@ namespace MakingSense.SafeBrowsing.GoogleSafeBrowsing
         /// </summary>
         public GoogleSafeBrowsingDatabase()
         {
-            SuspiciousLists = new Dictionary<string, SafeBrowsingList> {
-                [SOCIAL_ENGINEERING] = new SafeBrowsingList(),
-                [UNWANTED_SOFTWARE] = new SafeBrowsingList(),
-                [MALWARE] = new SafeBrowsingList(),
+            var dictionary = new Dictionary<ThreatType, SafeBrowsingList>
+            {
+                [ThreatType.SOCIAL_ENGINEERING] = new SafeBrowsingList(),
+                [ThreatType.UNWANTED_SOFTWARE] = new SafeBrowsingList(),
+                [ThreatType.MALWARE] = new SafeBrowsingList(),
             };
+
+#if !(NET35 || NET40)
+            SuspiciousLists = new ReadOnlyDictionary<ThreatType, SafeBrowsingList>(dictionary);
+#else
+            SuspiciousLists = dictionary;
+#endif
         }
 
         /// <summary>
@@ -118,6 +130,64 @@ namespace MakingSense.SafeBrowsing.GoogleSafeBrowsing
         {
             BackOffMode = false;
         }
+
+        /// <summary>
+        /// Update SuspiciousLists
+        /// </summary>
+        /// <param name="now">Now</param>
+        /// <param name="minWaitDuration">Minimum wait duration</param>
+        /// <param name="listUpdates">Collection of ListUpdate</param>
+        public void Update(DateTimeOffset now, TimeSpan minWaitDuration, IEnumerable<ListUpdate> listUpdates)
+        {
+            MinimumWaitDuration = minWaitDuration;
+            Updated = now;
+
+            foreach (var listUpdate in listUpdates)
+            {
+                if (SuspiciousLists[listUpdate.ThreatType].State == listUpdate.State)
+                {
+                    continue;
+                }
+
+                IEnumerable<byte[]> hashes = SuspiciousLists[listUpdate.ThreatType].Hashes;
+
+                var newHashes = listUpdate.AddingHashes ?? new List<byte[]>();
+
+                if (listUpdate.FullUpdate)
+                {
+                    hashes = newHashes;
+                }
+                else
+                {
+                    if (listUpdate.RemovalsIndices != null)
+                    {
+                        hashes = hashes.Where((x, index) => !listUpdate.RemovalsIndices.Contains(index));
+                    }
+
+                    hashes = hashes.Concat(newHashes);
+                }
+
+                SuspiciousLists[listUpdate.ThreatType].State = listUpdate.State;
+                SuspiciousLists[listUpdate.ThreatType].Hashes = OrderList(hashes);
+
+                //TODO: verify checksum - if not valid, state should be empty to try full update the next time
+                // if checksum not match
+                //      SuspiciousLists[listUpdate.ThreatType].State = null;
+            }
+        }
+
+        private List<byte[]> OrderList(IEnumerable<byte[]> list)
+        {
+            var orderedList = new List<byte[]>();
+
+            foreach (var item in list.OrderBy(x => x, new ByteArrayComparer()))
+            {
+                // Creating the list manually as ToList get stuck
+                orderedList.Add(item);
+            }
+
+            return orderedList;
+        }
     }
 
     /// <summary>
@@ -135,5 +205,36 @@ namespace MakingSense.SafeBrowsing.GoogleSafeBrowsing
         /// (the encrypted client state that was received from the last successful list update).
         /// </summary>
         public string State { get; set; } = string.Empty;
+    }
+
+    public class ListUpdate
+    {
+        public ThreatType ThreatType { get; set; }
+        public string State { get; set; }
+        public bool FullUpdate { get; set; }
+        public IEnumerable<byte[]> AddingHashes { get; set; }
+        public IEnumerable<int> RemovalsIndices { get; set; }
+    }
+
+    public enum ThreatType
+    {
+        SOCIAL_ENGINEERING,
+        UNWANTED_SOFTWARE,
+        MALWARE
+    }
+
+    public class ByteArrayComparer : IComparer<byte[]>
+    {
+        public int Compare(byte[] x, byte[] y)
+        {
+            int result;
+            var min = Math.Min(x.Length, y.Length);
+            for (int index = 0; index < min; index++)
+            {
+                result = x[index].CompareTo(y[index]);
+                if (result != 0) return result;
+            }
+            return x.Length.CompareTo(y.Length);
+        }
     }
 }

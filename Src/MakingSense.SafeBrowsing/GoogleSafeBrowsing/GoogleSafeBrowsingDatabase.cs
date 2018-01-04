@@ -137,7 +137,7 @@ namespace MakingSense.SafeBrowsing.GoogleSafeBrowsing
         /// <param name="now">Now</param>
         /// <param name="minWaitDuration">Minimum wait duration</param>
         /// <param name="listUpdates">Collection of ListUpdate</param>
-        public void Update(DateTimeOffset now, TimeSpan minWaitDuration, IEnumerable<ListUpdate> listUpdates)
+        public void Update(DateTimeOffset now, TimeSpan? minWaitDuration, IEnumerable<ListUpdate> listUpdates)
         {
             MinimumWaitDuration = minWaitDuration;
             Updated = now;

@@ -27,13 +27,14 @@ namespace MakingSense.SafeBrowsing.GoogleSafeBrowsing
         /// </summary>
         /// <param name="configuration">Google Safe Browsing configuration</param>
         /// <param name="safeBrowsingService">Optional ISafeBrowsingService implementation</param>
-        public GoogleSafeBrowsingUpdater(GoogleSafeBrowsingConfiguration configuration, ISafeBrowsingService safeBrowsingService = null)
+        /// <param name="database">Optional GoogleSafeBrowsingDatabase instance</param>
+        public GoogleSafeBrowsingUpdater(GoogleSafeBrowsingConfiguration configuration, 
+            ISafeBrowsingService safeBrowsingService = null,
+            GoogleSafeBrowsingDatabase database = null)
         {
             _configuration = configuration;
-
             _safeBrowsingService = safeBrowsingService ?? new SafeBrowsingService(_configuration.ApiKey);
-
-            _database = new GoogleSafeBrowsingDatabase();
+            _database = database ?? new GoogleSafeBrowsingDatabase();
         }
 
         /// <summary>
@@ -85,8 +86,13 @@ namespace MakingSense.SafeBrowsing.GoogleSafeBrowsing
                 _database.ExitBackOffMode();
             }
 
-            var minWaitDuration = TimeSpan.FromSeconds(double.Parse((response.MinimumWaitDuration as string).TrimEnd('s')));
-            var listUpdates = response.ListUpdateResponses.Select(x=> MapListUpdate(x));
+            var minDuration = response.MinimumWaitDuration as string;
+
+            var minWaitDuration = minDuration != null ? 
+                TimeSpan.FromSeconds(double.Parse(minDuration.TrimEnd('s'))) as TimeSpan?
+                : null;
+
+            var listUpdates = response.ListUpdateResponses.Select(MapListUpdate);
 
             _database.Update(DateTimeOffset.Now, minWaitDuration, listUpdates);
         }

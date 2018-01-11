@@ -99,7 +99,95 @@ namespace MakingSense.SafeBrowsing
                 Query = Encode(query)
             };
         }
-        
+
+        /// <summary>
+        /// Generate the url prefix/suffix combinations
+        /// <para>The client will form up to 30 different possible host suffix and path prefix combinations. 
+        /// These combinations use only the host and path components of the URL.
+        /// The scheme, username, password, and port are disregarded. 
+        /// If the URL includes query parameters, then at least one combination will include the full path and query parameters.</para>
+        /// </summary>
+        /// <returns></returns>
+        public IList<string> GeneratePrefixSuffixPatterns()
+        {
+            var hosts = GetPrefixes();
+            var paths = GetSufixes();
+
+            return hosts.SelectMany(h => paths.Select(p => h + p)).ToList(); 
+        }
+
+        /**
+         * For the path, the client will try at most six different strings. They are:
+         * - The exact path of the URL, including query parameters.
+         * - The exact path of the URL, without query parameters. 
+         * - The four paths formed by starting at the root (/) and successively appending path components, including a trailing slash.
+         * */
+        private List<string> GetSufixes()
+        {
+            var paths = new List<string>();
+
+            if (!string.IsNullOrEmpty(this.Query))
+            {
+                paths.Add(this.Path + this.Query);
+            }
+
+            paths.Add(this.Path);
+
+            if(this.Path == "/")
+            {
+                return paths;
+            }
+
+            paths.Add("/");
+
+            var pathComp = this.Path.Trim('/').Split('/');
+
+            if (pathComp.Length > 1)
+            {
+                // take up to 3 path components and always ignore the last component (full path is already added)
+                var maxCount = pathComp.Length > 3 ? 3 : pathComp.Length - 1;
+
+                for (int i = 1; i <= maxCount; i++)
+                {
+                    paths.Add("/" + string.Join("/", pathComp.Take(i).ToArray()) + "/");
+                }
+            }
+
+            return paths;
+        }
+
+        /**
+         * For the host, the client will try at most five different strings. They are:
+         * - The exact hostname in the URL.
+         * - Up to four hostnames formed by starting with the last five components and successively removing the leading component. 
+         *   The top-level domain can be skipped. These additional hostnames should not be checked if the host is an IP address.
+         * */
+        private List<string> GetPrefixes()
+        {
+            var hosts = new List<string> { this.Host };
+
+            Regex ip = new Regex(@"\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b");
+            if (ip.IsMatch(this.Host))
+            {
+                return hosts;
+            }
+
+            var hostComp = this.Host.Split('.');
+            if (hostComp.Length > 2)
+            {
+                // ignore components other than the last 5 ones
+                var startPos = hostComp.Length > 5 ? hostComp.Length - 5 : 1;
+                var lastComponents = hostComp.Skip(startPos);
+
+                for (int i = 0; i < lastComponents.Count() - 1; i++)
+                {
+                    hosts.Add(string.Join(".", lastComponents.Skip(i).ToArray()));
+                }
+            }
+
+            return hosts;
+        }
+
         private static string Encode(string url)
         {
             var sb = new StringBuilder();

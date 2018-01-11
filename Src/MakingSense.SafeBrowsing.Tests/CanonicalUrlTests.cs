@@ -49,7 +49,6 @@ namespace MakingSense.SafeBrowsing.Tests
 #if DNXCORE50
         [Theory]
 #endif
-        [TestCase("http://remove.this/", "http://remove.this/")]
         [TestCase("http://host/%25%32%35", "http://host/%25")]
         [TestCase("http://host/%25%32%35%25%32%35", "http://host/%25%25")]
         [TestCase("http://host/%2525252525252525", "http://host/%25")]
@@ -85,8 +84,54 @@ namespace MakingSense.SafeBrowsing.Tests
         [TestCase("http://host.com//twoslashes?more//slashes", "http://host.com/twoslashes?more//slashes")]
         public void CanonicalUrl_Create_should_return_expectedValue(string input, string expected)
         {
+            //Act
             var canonicalUrl = CanonicalUrl.Create(input);
+
+            //Assert
             Assert.AreEqual(expected, canonicalUrl.ToString());
+        }
+
+#if DNXCORE50
+        [Theory]
+#endif
+        [TestCase("http://a.b.c/1/2.html?param=1", new string[] {
+            "a.b.c/1/2.html?param=1",
+            "a.b.c/1/2.html",
+            "a.b.c/",
+            "a.b.c/1/",
+            "b.c/1/2.html?param=1",
+            "b.c/1/2.html",
+            "b.c/",
+            "b.c/1/" })]
+        [TestCase("http://a.b.c.d.e.f.g/1.html", new string[] {
+            "a.b.c.d.e.f.g/1.html",
+            "a.b.c.d.e.f.g/",
+            "c.d.e.f.g/1.html",
+            "c.d.e.f.g/",
+            "d.e.f.g/1.html",
+            "d.e.f.g/",
+            "e.f.g/1.html",
+            "e.f.g/",
+            "f.g/1.html",
+            "f.g/" })]
+        [TestCase("http://1.2.3.4/1/", new string[] {
+            "1.2.3.4/1/",
+            "1.2.3.4/" })]
+        public void CanonicalUrl_GeneratePrefixSuffixPatterns_should_return_expectedPatterns(string url, string[] expected)
+        {
+            //Arrange
+            var canonicalUrl = CanonicalUrl.Create(url);
+
+            //Act
+            var patterns = canonicalUrl.GeneratePrefixSuffixPatterns();
+
+            //Assert
+            Assert.AreEqual(expected.Length, patterns.Count);
+            for (int i = 0; i < expected.Length; i++)
+            {
+                Assert.AreEqual(expected[i], patterns[i]);
+            }
+
         }
     }
 }

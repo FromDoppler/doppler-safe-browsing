@@ -13,9 +13,10 @@ namespace MakingSense.SafeBrowsing.GoogleSafeBrowsing
     /// </summary>
     public class GoogleSafeBrowsingUpdater : IUpdater
     {
-        private readonly GoogleSafeBrowsingConfiguration _configuration;
-        private readonly GoogleSafeBrowsingDatabase _database;
+        private readonly GoogleSafeBrowsingConfiguration _configuration;        
         private readonly ISafeBrowsingService _safeBrowsingService;
+
+        public GoogleSafeBrowsingDatabase Database { get; }
 
         private const string ANY_PLATFORM = "ANY_PLATFORM";
         private const string URL = "URL";
@@ -34,7 +35,7 @@ namespace MakingSense.SafeBrowsing.GoogleSafeBrowsing
         {
             _configuration = configuration;
             _safeBrowsingService = safeBrowsingService ?? new SafeBrowsingService(_configuration.ApiKey);
-            _database = database ?? new GoogleSafeBrowsingDatabase();
+            Database = database ?? new GoogleSafeBrowsingDatabase();
         }
 
         /// <summary>
@@ -43,7 +44,7 @@ namespace MakingSense.SafeBrowsing.GoogleSafeBrowsing
         /// <returns></returns>
         public async Task UpdateAsync()
         {
-            if (!_database.AllowRequest)
+            if (!Database.AllowRequest)
             {
                 return;
             }
@@ -55,7 +56,7 @@ namespace MakingSense.SafeBrowsing.GoogleSafeBrowsing
                     ClientId = _configuration.ClientId,
                     ClientVersion = _configuration.ClientVersion
                 },
-                ListUpdateRequests = _database.SuspiciousLists.Select(list => new ListUpdateRequest
+                ListUpdateRequests = Database.SuspiciousLists.Select(list => new ListUpdateRequest
                 {
                     PlatformType = ANY_PLATFORM,
                     ThreatType = list.Key.ToString(),
@@ -77,13 +78,13 @@ namespace MakingSense.SafeBrowsing.GoogleSafeBrowsing
             }
             catch (Google.GoogleApiException ex)
             {
-                _database.EnterBackOffMode();
+                Database.EnterBackOffMode();
                 throw;
             }
 
-            if (_database.BackOffMode)
+            if (Database.BackOffMode)
             {
-                _database.ExitBackOffMode();
+                Database.ExitBackOffMode();
             }
 
             var minDuration = response.MinimumWaitDuration as string;
@@ -94,7 +95,7 @@ namespace MakingSense.SafeBrowsing.GoogleSafeBrowsing
 
             var listUpdates = response.ListUpdateResponses.Select(MapListUpdate);
 
-            _database.Update(DateTimeOffset.Now, minWaitDuration, listUpdates);
+            Database.Update(DateTimeOffset.Now, minWaitDuration, listUpdates);
         }
 
         private ListUpdate MapListUpdate(ListUpdateResponse response)

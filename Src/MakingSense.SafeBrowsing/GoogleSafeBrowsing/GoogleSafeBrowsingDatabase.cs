@@ -140,7 +140,6 @@ namespace MakingSense.SafeBrowsing.GoogleSafeBrowsing
         public void Update(DateTimeOffset now, TimeSpan? minWaitDuration, IEnumerable<ListUpdate> listUpdates)
         {
             MinimumWaitDuration = minWaitDuration;
-            Updated = now;
 
             foreach (var listUpdate in listUpdates)
             {
@@ -174,6 +173,22 @@ namespace MakingSense.SafeBrowsing.GoogleSafeBrowsing
                 // if checksum not match
                 //      SuspiciousLists[listUpdate.ThreatType].State = null;
             }
+
+            Updated = now;
+        }
+
+        /// <summary>
+        /// Search for stored hash that starts with any of the given prefixes
+        /// </summary>
+        /// <param name="threatType">Suspicious list type</param>
+        /// <param name="hashes">List of prefixes to search</param>
+        /// <returns>List of hashes that starts with any of the given prefixes</returns>
+        public IEnumerable<byte[]> FindHashes(ThreatType threatType, IEnumerable<byte[]> hashes)
+        {
+            return hashes.SelectMany(h => {
+                var size = h.Count();
+                return SuspiciousLists[threatType].Hashes.FindAll(x => x.Take(size).SequenceEqual(h));
+            });
         }
 
         private List<byte[]> OrderList(IEnumerable<byte[]> list)

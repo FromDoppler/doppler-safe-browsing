@@ -107,7 +107,8 @@ namespace MakingSense.SafeBrowsing.GoogleSafeBrowsing
                 FullUpdate = response.ResponseType == FULL_UPDATE,
                 AddingHashes = response.Additions?.Select(a => a.RawHashes)
                                     .SelectMany(rh => SplitByteList(Convert.FromBase64String(rh.RawHashesValue), rh.PrefixSize.Value)),
-                RemovalsIndices = response.Removals?.SelectMany(x => x.RawIndices.Indices).Where(x => x.HasValue).Select(x => x.Value)
+                RemovalsIndices = response.Removals?.SelectMany(x => x.RawIndices.Indices).Where(x => x.HasValue).Select(x => x.Value),
+                Checksum = Convert.FromBase64String(response.Checksum.Sha256)
             };
         }
 

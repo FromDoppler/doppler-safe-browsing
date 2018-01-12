@@ -141,6 +141,8 @@ namespace MakingSense.SafeBrowsing.GoogleSafeBrowsing
         {
             MinimumWaitDuration = minWaitDuration;
 
+            var testChecksum = "";
+
             foreach (var listUpdate in listUpdates)
             {
                 if (SuspiciousLists[listUpdate.ThreatType].State == listUpdate.State)
@@ -169,9 +171,13 @@ namespace MakingSense.SafeBrowsing.GoogleSafeBrowsing
                 SuspiciousLists[listUpdate.ThreatType].State = listUpdate.State;
                 SuspiciousLists[listUpdate.ThreatType].Hashes = OrderList(hashes);
 
-                //TODO: verify checksum - if not valid, state should be empty to try full update the next time
-                // if checksum not match
-                //      SuspiciousLists[listUpdate.ThreatType].State = null;
+#if !(NETSTANDARD1_0)
+                var checksum = CryptographyHelper.GenerateSHA256(SuspiciousLists[listUpdate.ThreatType].Hashes.SelectMany(x=> x).ToArray());
+                if (!checksum.SequenceEqual(listUpdate.Checksum))
+                {
+                    SuspiciousLists[listUpdate.ThreatType].State = null;
+                }
+#endif
             }
 
             Updated = now;
@@ -229,6 +235,7 @@ namespace MakingSense.SafeBrowsing.GoogleSafeBrowsing
         public bool FullUpdate { get; set; }
         public IEnumerable<byte[]> AddingHashes { get; set; }
         public IEnumerable<int> RemovalsIndices { get; set; }
+        public byte[] Checksum { get; set; }
     }
 
     public enum ThreatType

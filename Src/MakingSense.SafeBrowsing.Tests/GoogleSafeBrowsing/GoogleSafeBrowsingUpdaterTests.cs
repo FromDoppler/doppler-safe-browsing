@@ -79,7 +79,6 @@ namespace MakingSense.SafeBrowsing.Tests.GoogleSafeBrowsing
         public void GoogleSafeBrowsingUpdater_should_update_lists_with_partial_data()
         {
             // Arrange
-
             var service = new SafeBrowsingServiceDouble();
             var response = CreateFullUpdateResponse();
             response.MinimumWaitDuration = null;
@@ -106,10 +105,40 @@ namespace MakingSense.SafeBrowsing.Tests.GoogleSafeBrowsing
         }
 
         [Test]
+        public void GoogleSafeBrowsingUpdater_should_empty_state_when_invalidChecksum()
+        {
+            // Arrange
+            var service = new SafeBrowsingServiceDouble();
+            var response = CreateFullUpdateResponse();
+            response.MinimumWaitDuration = null;
+            service.Setup_FetchThreatListUpdatesAsync(response);
+            var database = new GoogleSafeBrowsingDatabase();
+            var sut = new GoogleSafeBrowsingUpdater(new GoogleSafeBrowsingConfiguration(), service, database);
+            sut.UpdateAsync().Wait();
+            var update = CreatePartialUpdateResponse();
+            update.ListUpdateResponses.First(x=> x.ThreatType == "MALWARE").Checksum.Sha256 = "47DEQpj8HBSa+/TImW+5JCeuQeRkm5NMpJWZG3hSuFU=";
+
+            //Act
+            service.Setup_FetchThreatListUpdatesAsync(update);
+            sut.UpdateAsync().Wait();
+
+            // Assert
+            Assert.IsTrue(database.MinimumWaitDuration.HasValue);
+            Assert.AreEqual(1452.62, database.MinimumWaitDuration.Value.TotalSeconds);
+            Assert.IsNotNull(database.Updated);
+            Assert.IsNull(database.SuspiciousLists[SafeBrowsing.GoogleSafeBrowsing.ThreatType.MALWARE].State);
+            Assert.AreEqual(2, database.SuspiciousLists[SafeBrowsing.GoogleSafeBrowsing.ThreatType.MALWARE].Hashes.Count);
+            Assert.AreEqual("social-eng-sate-1", database.SuspiciousLists[SafeBrowsing.GoogleSafeBrowsing.ThreatType.SOCIAL_ENGINEERING].State);
+            Assert.AreEqual(1, database.SuspiciousLists[SafeBrowsing.GoogleSafeBrowsing.ThreatType.SOCIAL_ENGINEERING].Hashes.Count);
+            Assert.AreEqual("unwanted-sw-sate-2", database.SuspiciousLists[SafeBrowsing.GoogleSafeBrowsing.ThreatType.UNWANTED_SOFTWARE].State);
+            Assert.AreEqual(1, database.SuspiciousLists[SafeBrowsing.GoogleSafeBrowsing.ThreatType.UNWANTED_SOFTWARE].Hashes.Count);
+
+        }
+
+        [Test]
         public void GoogleSafeBrowsingUpdater_should_enter_backOff_mode_when_apiException()
         {
             // Arrange
-
             var service = new SafeBrowsingServiceDouble();
             service.Setup_FetchThreatListUpdatesAsync(new Exception());
             var database = new GoogleSafeBrowsingDatabase();
@@ -154,7 +183,7 @@ namespace MakingSense.SafeBrowsing.Tests.GoogleSafeBrowsing
                         },
                         Checksum = new Checksum
                         {
-                            Sha256 = ""
+                            Sha256 = "DagMoQ/h1Qm2BUfStEKs7uBw89Sjr/CAIyHaBKLNA+k="
                         }
                     },
                     new ListUpdateResponse
@@ -175,7 +204,7 @@ namespace MakingSense.SafeBrowsing.Tests.GoogleSafeBrowsing
                         },
                         Checksum = new Checksum
                         {
-                            Sha256 = ""
+                            Sha256 = "YSgoRtsRlgHDqDA3LAhM1gegEpEzs1TjzU33vqsR8iM="
                         }
                     },
                     new ListUpdateResponse
@@ -185,7 +214,7 @@ namespace MakingSense.SafeBrowsing.Tests.GoogleSafeBrowsing
                         ResponseType = "FULL_UPDATE",
                         Checksum = new Checksum
                         {
-                            Sha256 = ""
+                            Sha256 = "47DEQpj8HBSa+/TImW+5JCeuQeRkm5NMpJWZG3hSuFU="
                         }
                     }
                 }
@@ -227,7 +256,7 @@ namespace MakingSense.SafeBrowsing.Tests.GoogleSafeBrowsing
                         },
                         Checksum = new Checksum
                         {
-                            Sha256 = ""
+                            Sha256 = "3E7yWvipb33i6tVlw457FXDozvjhE1CENPYNOTDhI2s="
                         }
                     },
                     new ListUpdateResponse
@@ -237,7 +266,7 @@ namespace MakingSense.SafeBrowsing.Tests.GoogleSafeBrowsing
                         ResponseType = "PARTIAL_UPDATE",
                         Checksum = new Checksum
                         {
-                            Sha256 = ""
+                            Sha256 = "YSgoRtsRlgHDqDA3LAhM1gegEpEzs1TjzU33vqsR8iM="
                         }
                     },
                     new ListUpdateResponse
@@ -258,7 +287,7 @@ namespace MakingSense.SafeBrowsing.Tests.GoogleSafeBrowsing
                         },
                         Checksum = new Checksum
                         {
-                            Sha256 = ""
+                            Sha256 = "1InO6kPzdG46JBXoFyUBHe667+wHHcACahYSb/njIrg="
                         }
                     }
                 }

@@ -10,12 +10,17 @@ namespace MakingSense.SafeBrowsing
 {
     public class CryptographyHelper
     {
-        public static byte[] GenerateSHA256(string inputString)
+        public static byte[] GenerateSHA256(byte[] input)
         {
             SHA256 sha256 = SHA256.Create();
-            byte[] bytes = Encoding.UTF8.GetBytes(inputString);
-            byte[] hash = sha256.ComputeHash(bytes);
+            byte[] hash = sha256.ComputeHash(input);
             return hash;
+        }
+
+        public static byte[] GenerateSHA256(string inputString)
+        {
+            byte[] bytes = Encoding.UTF8.GetBytes(inputString);
+            return GenerateSHA256(bytes);
         }
 
         public static byte[] GenerateSHA256(string inputString, int prefixSize)

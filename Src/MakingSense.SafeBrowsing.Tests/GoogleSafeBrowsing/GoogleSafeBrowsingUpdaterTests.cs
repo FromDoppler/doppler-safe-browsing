@@ -45,7 +45,7 @@ using NUnit.Framework;
 namespace MakingSense.SafeBrowsing.Tests.GoogleSafeBrowsing
 {
     [TestFixture]
-    class GoogleSafeBrowsingUpdaterTests : TestFixtureBase
+    public class GoogleSafeBrowsingUpdaterTests : TestFixtureBase
     {
         [Test]
         public void GoogleSafeBrowsingUpdater_should_update_lists_with_initial_data()

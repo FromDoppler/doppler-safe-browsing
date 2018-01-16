@@ -30,17 +30,17 @@ namespace MakingSense.SafeBrowsing.GoogleSafeBrowsing
             var canonicalUrl = CanonicalUrl.Create(url);
             var patterns = canonicalUrl.GeneratePrefixSuffixPatterns();
 
-            var prefixHashes = patterns.Select(x=> CryptographyHelper.GenerateSHA256(x,4));
+            var hashes = patterns.Select(x=> CryptographyHelper.GenerateSHA256(x));
 
-            if(_database.FindHashes(ThreatType.SOCIAL_ENGINEERING, prefixHashes).Count() > 0)
+            if(_database.FindPrefixes(ThreatType.SOCIAL_ENGINEERING, hashes).Any())
             {
                 return new SafeBrowsingStatus(url, SafeBrowsing.ThreatType.Phishing);
             }
-            else if (_database.FindHashes(ThreatType.MALWARE, prefixHashes).Count() > 0)
+            else if (_database.FindPrefixes(ThreatType.MALWARE, hashes).Any())
             {
                 return new SafeBrowsingStatus(url, SafeBrowsing.ThreatType.Malware);
             }
-            else if (_database.FindHashes(ThreatType.UNWANTED_SOFTWARE, prefixHashes).Count() > 0)
+            else if (_database.FindPrefixes(ThreatType.UNWANTED_SOFTWARE, hashes).Any())
             {
                 return new SafeBrowsingStatus(url, SafeBrowsing.ThreatType.Unwanted);
             }

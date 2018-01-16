@@ -141,8 +141,6 @@ namespace MakingSense.SafeBrowsing.GoogleSafeBrowsing
         {
             MinimumWaitDuration = minWaitDuration;
 
-            var testChecksum = "";
-
             foreach (var listUpdate in listUpdates)
             {
                 if (SuspiciousLists[listUpdate.ThreatType].State == listUpdate.State)
@@ -184,17 +182,17 @@ namespace MakingSense.SafeBrowsing.GoogleSafeBrowsing
         }
 
         /// <summary>
-        /// Search for stored hash that starts with any of the given prefixes
+        /// Search for prefixes of the given hashes
         /// </summary>
-        /// <param name="threatType">Suspicious list type</param>
-        /// <param name="hashes">List of prefixes to search</param>
-        /// <returns>List of hashes that starts with any of the given prefixes</returns>
-        public IEnumerable<byte[]> FindHashes(ThreatType threatType, IEnumerable<byte[]> hashes)
+        /// <param name="threatType">Suspicious List type</param>
+        /// <param name="hashes">List of hashes</param>
+        /// <returns>List of hash prefixes</returns>
+        public IEnumerable<byte[]> FindPrefixes(ThreatType threatType, IEnumerable<byte[]> hashes)
         {
-            return hashes.SelectMany(h => {
-                var size = h.Count();
-                return SuspiciousLists[threatType].Hashes.FindAll(x => x.Take(size).SequenceEqual(h));
-            });
+            return hashes.Select(h => {
+                var index = SuspiciousLists[threatType].Hashes.BinarySearch(h, new ByteArrayComparer(true));
+                return index >= 0 ? SuspiciousLists[threatType].Hashes[index] : null;
+            }).Where(x => x != null);
         }
 
         private List<byte[]> OrderList(IEnumerable<byte[]> list)
@@ -247,6 +245,16 @@ namespace MakingSense.SafeBrowsing.GoogleSafeBrowsing
 
     public class ByteArrayComparer : IComparer<byte[]>
     {
+        /// <summary>
+        /// Allow to search prefixes by returning zero index if x is a prefix of y
+        /// </summary>
+        public bool IncludePrefixes { get; set; } = false;
+
+        public ByteArrayComparer(bool includePrefixes = false)
+        {
+            IncludePrefixes = includePrefixes;
+        }
+
         public int Compare(byte[] x, byte[] y)
         {
             int result;
@@ -256,6 +264,11 @@ namespace MakingSense.SafeBrowsing.GoogleSafeBrowsing
                 result = x[index].CompareTo(y[index]);
                 if (result != 0) return result;
             }
+            if (IncludePrefixes && x.Length < y.Length)
+            {
+                return 0;
+            }
+
             return x.Length.CompareTo(y.Length);
         }
     }

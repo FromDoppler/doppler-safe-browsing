@@ -4,6 +4,7 @@ using System.Collections.ObjectModel;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using MakingSense.SafeBrowsing.Internal;
 
 namespace MakingSense.SafeBrowsing.GoogleSafeBrowsing
 {
@@ -12,10 +13,6 @@ namespace MakingSense.SafeBrowsing.GoogleSafeBrowsing
     /// </summary>
     public class GoogleSafeBrowsingDatabase
     {
-        private const string SOCIAL_ENGINEERING = "SOCIAL_ENGINEERING";
-        private const string UNWANTED_SOFTWARE = "UNWANTED_SOFTWARE";
-        private const string MALWARE = "MALWARE";
-
         /// <summary>
         /// The minimum duration the client must wait before issuing any update request. 
         /// If this field is not set clients may update as soon as they want.
@@ -148,26 +145,34 @@ namespace MakingSense.SafeBrowsing.GoogleSafeBrowsing
                     continue;
                 }
 
-                IEnumerable<byte[]> hashes = SuspiciousLists[listUpdate.ThreatType].Hashes;
+                var hashes = SuspiciousLists[listUpdate.ThreatType].Hashes;
 
                 var newHashes = listUpdate.AddingHashes ?? new List<byte[]>();
 
                 if (listUpdate.FullUpdate)
                 {
-                    hashes = newHashes;
+                    hashes.Clear();
+                    hashes.AddRange(newHashes);
                 }
                 else
                 {
                     if (listUpdate.RemovalsIndices != null)
                     {
-                        hashes = hashes.Where((x, index) => !listUpdate.RemovalsIndices.Contains(index));
+                        foreach (var index in listUpdate.RemovalsIndices.OrderByDescending(x => x))
+                        {
+                            hashes.RemoveAt(index);
+                        }
                     }
 
-                    hashes = hashes.Concat(newHashes);
+                    var comparer = new ByteArrayComparer();
+
+                    foreach (var newHash in newHashes)
+                    {
+                        hashes.AddSorted(newHash, comparer);
+                    }
                 }
 
                 SuspiciousLists[listUpdate.ThreatType].State = listUpdate.State;
-                SuspiciousLists[listUpdate.ThreatType].Hashes = OrderList(hashes);
 
 #if !(NETSTANDARD1_0)
                 var checksum = CryptographyHelper.GenerateSHA256(SuspiciousLists[listUpdate.ThreatType].Hashes.SelectMany(x=> x).ToArray());
@@ -193,19 +198,6 @@ namespace MakingSense.SafeBrowsing.GoogleSafeBrowsing
                 var index = SuspiciousLists[threatType].Hashes.BinarySearch(h, new ByteArrayComparer(true));
                 return index >= 0 ? SuspiciousLists[threatType].Hashes[index] : null;
             }).Where(x => x != null);
-        }
-
-        private List<byte[]> OrderList(IEnumerable<byte[]> list)
-        {
-            var orderedList = new List<byte[]>();
-
-            foreach (var item in list.OrderBy(x => x, new ByteArrayComparer()))
-            {
-                // Creating the list manually as ToList get stuck
-                orderedList.Add(item);
-            }
-
-            return orderedList;
         }
     }
 
@@ -248,11 +240,11 @@ namespace MakingSense.SafeBrowsing.GoogleSafeBrowsing
         /// <summary>
         /// Allow to search prefixes by returning zero index if x is a prefix of y
         /// </summary>
-        public bool IncludePrefixes { get; set; } = false;
+        public bool SearchPrefixes { get; set; } = false;
 
-        public ByteArrayComparer(bool includePrefixes = false)
+        public ByteArrayComparer(bool searchPrefixes = false)
         {
-            IncludePrefixes = includePrefixes;
+            SearchPrefixes = searchPrefixes;
         }
 
         public int Compare(byte[] x, byte[] y)
@@ -264,7 +256,7 @@ namespace MakingSense.SafeBrowsing.GoogleSafeBrowsing
                 result = x[index].CompareTo(y[index]);
                 if (result != 0) return result;
             }
-            if (IncludePrefixes && x.Length < y.Length)
+            if (SearchPrefixes && x.Length < y.Length)
             {
                 return 0;
             }

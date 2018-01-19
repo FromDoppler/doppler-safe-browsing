@@ -32,5 +32,10 @@ namespace MakingSense.SafeBrowsing.GoogleSafeBrowsing
         /// may pick that value based on the user's IP address. Expects ISO 3166-1 alpha-2 format.
         /// </summary>
         public string Region { get; set; }
+
+        /// <summary>
+        /// Minumum time to wait to save a new database snaphot. Default value is 24 hours.
+        /// </summary>
+        public TimeSpan DatabaseSnapshotInterval { get; set; } = TimeSpan.FromHours(24);
     }
 }

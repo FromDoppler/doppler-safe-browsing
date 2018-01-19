@@ -80,4 +80,7 @@
   <ItemGroup Condition="'$(TargetFramework)' == 'netstandard1.3' OR '$(TargetFramework)' == 'net45'">
     <PackageReference Include="Google.Apis.Safebrowsing.v4" Version="1.32.0.1076" />
   </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Newtonsoft.Json" Version="10.0.3" />
+  </ItemGroup>
 </Project>

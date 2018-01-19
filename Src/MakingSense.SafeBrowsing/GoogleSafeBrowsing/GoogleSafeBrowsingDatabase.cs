@@ -1,4 +1,5 @@
-﻿using System;
+﻿#if !(NETSTANDARD1_0)
+using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
@@ -53,6 +54,8 @@ namespace MakingSense.SafeBrowsing.GoogleSafeBrowsing
         /// </summary>
         public double BackOffSeed { get; private set; }
 
+        public string SnapshotPath { get; private set; } = null;
+
         /// <summary>
         /// Back-off computed time duration before client can issue another request to the server. 
         /// It uses the following formula: MIN((2^(N-1) * 15 minutes) * (RAND + 1), 24 hours)
@@ -84,8 +87,10 @@ namespace MakingSense.SafeBrowsing.GoogleSafeBrowsing
         /// <summary>
         /// Initialize an instance with default SuspiciousLists
         /// </summary>
-        public GoogleSafeBrowsingDatabase()
+        public GoogleSafeBrowsingDatabase(string snapshotPath = null)
         {
+            SnapshotPath = snapshotPath ?? SnapshotPath;
+
             var dictionary = new Dictionary<ThreatType, SafeBrowsingList>
             {
                 [ThreatType.SOCIAL_ENGINEERING] = new SafeBrowsingList(),
@@ -174,16 +179,31 @@ namespace MakingSense.SafeBrowsing.GoogleSafeBrowsing
 
                 SuspiciousLists[listUpdate.ThreatType].State = listUpdate.State;
 
-#if !(NETSTANDARD1_0)
                 var checksum = CryptographyHelper.GenerateSHA256(SuspiciousLists[listUpdate.ThreatType].Hashes.SelectMany(x=> x).ToArray());
                 if (!checksum.SequenceEqual(listUpdate.Checksum))
                 {
                     SuspiciousLists[listUpdate.ThreatType].State = null;
                 }
-#endif
             }
 
             Updated = now;
+        }
+
+        public static GoogleSafeBrowsingDatabase Initialize(string snapshotPath = null)
+        {
+            var db = new GoogleSafeBrowsingDatabase(snapshotPath);
+
+            if (db.SnapshotPath != null)
+            {
+                var snapshot = JsonSerializer.ReadFromJsonFile<GoogleSafeBrowsingDatabaseSnapshot>(db.SnapshotPath);
+   
+                if(snapshot != null && snapshot.Updated.HasValue && snapshot.Lists.Any(x=> x.AddingHashes.Any()))
+                {
+                    db.Update(snapshot.Updated.Value, snapshot.MinimumWaitDuration, snapshot.Lists);
+                }
+            }
+
+            return db;
         }
 
         /// <summary>
@@ -199,6 +219,32 @@ namespace MakingSense.SafeBrowsing.GoogleSafeBrowsing
                 return index >= 0 ? SuspiciousLists[threatType].Hashes[index] : null;
             }).Where(x => x != null);
         }
+
+        public void SaveSnapshot()
+        {
+            var snapshot = new GoogleSafeBrowsingDatabaseSnapshot
+            {
+                MinimumWaitDuration = MinimumWaitDuration,
+                Updated = Updated,
+                Lists = SuspiciousLists?.Select(x => new ListUpdate
+                {
+                    AddingHashes = x.Value.Hashes,
+                    FullUpdate = true,
+                    State = x.Value.State,
+                    ThreatType = x.Key,
+                    Checksum = CryptographyHelper.GenerateSHA256(x.Value.Hashes.SelectMany(y => y).ToArray())
+                })
+            };
+
+            JsonSerializer.WriteToJsonFile(SnapshotPath, snapshot);
+        }
+    }
+
+    public class GoogleSafeBrowsingDatabaseSnapshot
+    {
+        public TimeSpan? MinimumWaitDuration { get; set; }
+        public DateTimeOffset? Updated { get; set; }
+        public IEnumerable<ListUpdate> Lists { get; set; }
     }
 
     /// <summary>
@@ -265,3 +311,4 @@ namespace MakingSense.SafeBrowsing.GoogleSafeBrowsing
         }
     }
 }
+#endif

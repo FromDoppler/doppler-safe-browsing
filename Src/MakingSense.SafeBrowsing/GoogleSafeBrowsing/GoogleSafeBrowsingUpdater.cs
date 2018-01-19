@@ -15,8 +15,10 @@ namespace MakingSense.SafeBrowsing.GoogleSafeBrowsing
     {
         private readonly GoogleSafeBrowsingConfiguration _configuration;        
         private readonly ISafeBrowsingService _safeBrowsingService;
+        private DateTimeOffset? _lastSnapshot;
 
         public GoogleSafeBrowsingDatabase Database { get; }
+
 
         private const string ANY_PLATFORM = "ANY_PLATFORM";
         private const string URL = "URL";
@@ -96,6 +98,12 @@ namespace MakingSense.SafeBrowsing.GoogleSafeBrowsing
             var listUpdates = response.ListUpdateResponses.Select(MapListUpdate);
 
             Database.Update(DateTimeOffset.Now, minWaitDuration, listUpdates);
+
+            if(Database.SnapshotPath != null && (!_lastSnapshot.HasValue || DateTimeOffset.UtcNow > _lastSnapshot.Value.Add(_configuration.DatabaseSnapshotInterval) ))
+            {
+                Database.SaveSnapshot();
+                _lastSnapshot = DateTimeOffset.UtcNow;
+            }
         }
 
         private ListUpdate MapListUpdate(ListUpdateResponse response)

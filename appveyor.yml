@@ -1,4 +1,4 @@
-version: 0.2.0-alpha2-{build}
+version: 0.2.0-alpha3-{build}
 image: Visual Studio 2017
 build_script:
 - ps: .\Build\runbuild.ps1 -properties @{buildNuGet=$false}

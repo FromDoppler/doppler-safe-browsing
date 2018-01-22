@@ -1,7 +1,7 @@
 ﻿properties { 
   $zipFileName = "SafeBrowsingAlpha.zip"
   $majorVersion = "0.2"
-  $majorWithReleaseVersion = "0.2.0-alpha2"
+  $majorWithReleaseVersion = "0.2.0-alpha3"
   $nugetPrerelease = $null
   $version = GetVersion $majorWithReleaseVersion
   $packageId = "MakingSense.SafeBrowsing"
@@ -224,7 +224,7 @@ function NetCliTests($build)
     Write-Host -ForegroundColor Green "Running tests for $testDir"
     Write-Host
 
-    exec { dotnet test $projectPath -f $testDir -c Release -l trx --no-build | Out-Default }
+    exec { dotnet test $projectPath -f $testDir -c Release -l trx | Out-Default }
     copy-item -Path "$location\TestResults\*.trx" -Destination $workingDir
   }
   finally
